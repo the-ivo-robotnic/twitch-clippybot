@@ -3,6 +3,7 @@ from asyncio import run
 from argparse import ArgumentParser, Namespace
 from logging import ERROR, INFO, NOTSET, basicConfig, getLogger
 from os import getcwd
+from functools import partial
 
 from . import (
     __app_id__,
@@ -32,20 +33,18 @@ LISTEN = Event()
 
 def load_ignore_users(cfg_path: str) -> List[str]:
     try:
-        with open(cfg_path, 'r') as file:
+        with open(cfg_path, "r") as file:
             data = load(file)
-            ignored_users = data.get('ignore-users')
+            ignored_users = data.get("ignore-users")
             return [] if ignored_users is None else ignored_users
     except FileNotFoundError as e:
-        LOG.warning('No config found: %s', cfg_path)
+        LOG.warning("No config found: %s", cfg_path)
         return []
 
 
 def save_ignore_users(cfg_path: str, ignore_users: List[str] = []) -> None:
-    with open(cfg_path, 'w+') as file:
-        data = {
-            'ignore-users': ignore_users
-        }
+    with open(cfg_path, "w+") as file:
+        data = {"ignore-users": ignore_users}
         dump(data, file)
 
 
@@ -80,20 +79,22 @@ def parse_args() -> Namespace:
         help="Set log level to DEBUG.",
     )
     parser.add_argument(
-        '-c', '--twitch-channel',
+        "-c",
+        "--twitch-channel",
         dest="twitch_channel",
-        metavar='Twitch Channel',
+        metavar="Twitch Channel",
         type=str,
-        default='the_ivo_robotnic',
-        help="Twitch Channel to connect to."
+        default="the_ivo_robotnic",
+        help="Twitch Channel to connect to.",
     )
     parser.add_argument(
-        '-l', '--ignore-users-config',
+        "-l",
+        "--ignore-users-config",
         dest="ignore_users",
-        metavar='Ignore Users Config File',
+        metavar="Ignore Users Config File",
         type=str,
-        default='ignore-users.json',
-        help="Path to file storing users to ignore."
+        default="ignore-users.json",
+        help="Path to file storing users to ignore.",
     )
     return parser.parse_args()
 
@@ -112,7 +113,7 @@ async def on_join(event: JoinedEvent) -> None:
 
 
 async def on_message(message: ChatMessage) -> None:
-    if(not LISTEN.is_set()):
+    if not LISTEN.is_set():
         LOG.warning("Clippy is not enabled right now!")
         return
     elif user_is_ignored(message.user):
@@ -152,24 +153,37 @@ async def on_clippy(cmd: ChatCommand) -> None:
         )
     elif argc == 1:
         arg = argv[0].lower()
-        if(arg == 'start'):
+        if arg == "start":
             msg = "Clippy will start being anoying now! OpieOP"
             LOG.info(msg)
             await cmd.reply(msg)
             LISTEN.set()
-        elif(arg == 'stop'):
+        elif arg == "stop":
             msg = "Clippy will stop being anoying... for now... monkaS"
             LOG.info(msg)
             await cmd.reply(msg)
             LISTEN.clear()
 
 
-async def on_ignoreme(cmd: ChatCommand) -> None:
+async def on_ignore(cmd: ChatCommand) -> None:
     LOG.info("Got ignore request for user: %s", cmd.user.display_name)
     IGNORE_USERS_LCK.acquire()
     IGNORE_USERS.append(cmd.user.id)
     IGNORE_USERS_LCK.release()
     await cmd.reply("Ok! I won't bother you anymore! :)")
+
+
+async def on_ignore_list(cmd: ChatCommand) -> None:
+    users_list = ", ".join(list(map(lambda x: x, IGNORE_USERS)))
+    await cmd.reply(f"Ignored users: {users_list}")
+
+
+async def on_listen(cmd: ChatCommand) -> None:
+    LOG.info("Got unignore request for user: %s", cmd.user.display_name)
+    IGNORE_USERS_LCK.acquire()
+    IGNORE_USERS.remove(cmd.user.id)
+    IGNORE_USERS_LCK.release()
+    await cmd.reply("Ok! I'll be sure to suggest corrections for you again! :)")
 
 
 async def main():
@@ -185,6 +199,7 @@ async def main():
 
     # Setup Twitch Auth Flow
     twitch = await Twitch(__app_id__, __app_secret__)
+    twitch.get_users()
     auth = UserAuthenticator(twitch=twitch, scopes=API_SCOPES, force_verify=False)
     access, refresh = await auth.authenticate()
     await twitch.set_user_authentication(
@@ -202,7 +217,9 @@ async def main():
     chat.register_event(ChatEvent.MESSAGE, on_message)
     chat.set_prefix("!")
     chat.register_command("clippy", on_clippy)
-    chat.register_command("ignoreme", on_ignoreme)
+    chat.register_command("ignore", on_ignore)
+    chat.register_command("ignorelist", on_ignore_list)
+    chat.register_command("listen", on_listen)
 
     # Start the Chat Bot
     LOG.info("Starting twitch bot...")
@@ -213,7 +230,7 @@ async def main():
     try:
         input("Press any key to stop!\n")
     except KeyboardInterrupt as e:
-        LOG.warning('Recieved Ctrl+C input!')
+        LOG.warning("Recieved Ctrl+C input!")
     finally:
         IGNORE_USERS_LCK.acquire()
         save_ignore_users(args.ignore_users, IGNORE_USERS)
