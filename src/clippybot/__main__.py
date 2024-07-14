@@ -108,7 +108,7 @@ def user_is_ignored(user: ChatUser) -> bool:
 
 async def on_join(event: JoinedEvent) -> None:
     await event.chat.send_message(
-        room=event.room_name, text=f"Hi, my name is {event.user_name}, I'm here to help. :)"
+        room=event.room_name, text=f"📎 Hi, my name is {event.user_name}, I'm here to help. :) 📎"
     )
 
 
@@ -133,11 +133,16 @@ async def on_message(message: ChatMessage) -> None:
     )
 
     if misspelled_cnt > 0:
-        corrections = ", ".join(
-            list(map(lambda x: f'"{x}" (did you mean "{SPELLCHECKER.correction(x)}"?)', misspelled))
-        )
+        corrections = []
+        for word in misspelled:
+            correction = f'\"{word}\", (did you mean \"{SPELLCHECKER.correction(word)}\"?)'
+            if correction is not None:
+                corrections.append(correction)
+        corrections = ','.join(corrections)
+        if(len(corrections) == 0):
+            return
         await message.reply(
-            f"Uh-oh, looks like you misspelled {corrections} Would you like help with that?"
+            f"📎 Uh-oh, looks like you misspelled {corrections} Would you like help with that? 📎"
         )
 
 
@@ -149,17 +154,17 @@ async def on_clippy(cmd: ChatCommand) -> None:
 
     if argc == 0:
         await cmd.reply(
-            "I am a bot! Any actions taken by me are automatic! If you would like for me to ignore you, use `!ignoreme`"
+            "📎 I am a bot! Any actions taken by me are automatic! If you would like for me to ignore you, use !ignore 📎"
         )
     elif argc == 1:
         arg = argv[0].lower()
         if arg == "start":
-            msg = "Clippy will start being anoying now! OpieOP"
+            msg = "📎 Clippy will start being anoying now! OpieOP 📎"
             LOG.info(msg)
             await cmd.reply(msg)
             LISTEN.set()
         elif arg == "stop":
-            msg = "Clippy will stop being anoying... for now... monkaS"
+            msg = "📎 Clippy will stop being anoying... for now... monkaS 📎"
             LOG.info(msg)
             await cmd.reply(msg)
             LISTEN.clear()
@@ -170,7 +175,7 @@ async def on_ignore(cmd: ChatCommand) -> None:
     IGNORE_USERS_LCK.acquire()
     IGNORE_USERS.append(cmd.user.id)
     IGNORE_USERS_LCK.release()
-    await cmd.reply("Ok! I won't bother you anymore! :)")
+    await cmd.reply("📎 Ok! I won't bother you anymore! :) 📎")
 
 
 async def on_ignore_list(cmd: ChatCommand) -> None:
@@ -183,7 +188,7 @@ async def on_listen(cmd: ChatCommand) -> None:
     IGNORE_USERS_LCK.acquire()
     IGNORE_USERS.remove(cmd.user.id)
     IGNORE_USERS_LCK.release()
-    await cmd.reply("Ok! I'll be sure to suggest corrections for you again! :)")
+    await cmd.reply("📎 Ok! I'll be sure to suggest corrections for you again! :) 📎")
 
 
 async def main():
