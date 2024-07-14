@@ -4,6 +4,7 @@
 **/src/authorize
 **/dist/*
 **/*.whl
+**/ignore-users.json
 
 # Temporary and binary files
 *~

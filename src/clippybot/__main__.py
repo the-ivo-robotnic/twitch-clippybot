@@ -221,8 +221,9 @@ async def main():
     chat.register_command("ignorelist", on_ignore_list)
     chat.register_command("listen", on_listen)
 
+
     # Start the Chat Bot
-    LOG.info("Starting twitch bot...")
+    print(f'Joined Twitch chat -> https://twitch.tv/{args.twitch_channel}')
     LISTEN.set()
     chat.start()
 
@@ -230,7 +231,7 @@ async def main():
     try:
         input("Press any key to stop!\n")
     except KeyboardInterrupt as e:
-        LOG.warning("Recieved Ctrl+C input!")
+        print("Recieved Ctrl+C input!")
     finally:
         IGNORE_USERS_LCK.acquire()
         save_ignore_users(args.ignore_users, IGNORE_USERS)
