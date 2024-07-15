@@ -1,53 +1,25 @@
 [project]
 name = "clippybot"
-version = "1.0.0"
+description = "A really annoying autocorrection bot."
+readme = "README.md"
+version = "1.0.1"
+dependencies = ["twitchAPI==4.2.1"]
 
+
+[project.optional-dependencies]
+dev = ["black", "isort", "pyllama", "pylint"]
 
 [build-system]
-requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-namespaces = false
+[project.scripts]
+clippybot = "clippybot.__main__:main"
 
-[tool.setuptools.dynamic]
-version = { attr = "_own_version_helper.version"}
 
-[tool.setuptools_scm]
-# For smarter version schemes and other configuration options,
-# check out https://github.com/pypa/setuptools_scm
-version_scheme = "no-guess-dev"
-
-[tool.black]
-line_length = 100
-
-[tool.pylama]
-format = "pylint"
-skip = "*/.tox/*,*/.env/,*/.git/*,*/.github/*,*/build/*,.direnv/*"
-linters = "pycodestyle,pyflakes,pylint,mccabe,mypy,radon"
-# E402:     Module level import not at top of file
-# C901:     Function is too complex
-# C0103:    Arguments are not snake_case naming style or too short
-# E203:     Whitespace before ':' (black does this)
-# R0912:    Too many branches
-# R0915:    Too many statements
-# R0901:    Function is too complex
-# R0914:    Too many local variables
-# R1716:    Simplify chained comparison between the operands
-# C0413:    Imports not at top of module
-# C0206:    Consider iterating dictionaries with .items()
-# R1716:    Simplify chained comparison between the operands
-# W1514:    Using open without explicitly specifying an encoding
-# R1702:    Too many nested blocks
-# E0401:    Cannot find implementation or library stub for module named
-# R0902:    Too many instance attributes
-# W0511:    TODOs or FIXMEs
-ignore = "E402,C901,C0103,E203,R0912,R0915,R901,R901,R0914,C0413,C0206,R1716,W1514,R1702,E0401,R0902,W0511,W0221"
-max_line_length = 100
-
-[[tool.pylama.files]]
-path = "*/__init__.py"
-# W0611:    Imported but unused
-# R0903:    Too few public methods
-ignore = "W0611,R0903"
+[tool.pylint."MESSAGES CONTROL"]
+max-line-length = 84
+disable = [
+    "W0102", # Dangerous Default Argument
+    "W0603", # Global Statement
+]

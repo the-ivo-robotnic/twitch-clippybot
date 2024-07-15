@@ -1,7 +1,4 @@
 # Custom
-**/user_token.json
-**/src/instance
-**/src/authorize
 **/dist/*
 **/*.whl
 **/ignore-users.json
