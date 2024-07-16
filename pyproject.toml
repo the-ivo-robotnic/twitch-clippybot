@@ -2,20 +2,27 @@
 name = "clippybot"
 description = "A really annoying autocorrection bot."
 readme = "README.md"
-version = "1.0.1"
-dependencies = ["twitchAPI==4.2.1"]
+version = "1.0.0"
+dependencies = [
+    "twitchAPI==4.2.1",
+    "decorator==5.1.1",
+    "openai==1.35.13",
+]
 
 
 [project.optional-dependencies]
 dev = ["black", "isort", "pyllama", "pylint"]
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools==70.3.0", "importlib-metadata==8.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
 clippybot = "clippybot.__main__:main"
 
+
+[tool.black]
+line_length = 84
 
 [tool.pylint."MESSAGES CONTROL"]
 max-line-length = 84

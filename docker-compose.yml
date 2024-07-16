@@ -1,0 +1,13 @@
+services:
+  clippybot:
+    build: .
+    image: clippybot
+    container_name: clippybot
+    volumes:
+      - data_dir:/srv/clippybot
+    environment:
+      - CLIPPYBOT_SECRET=$CLIPPYBOT_SECRET
+      - TWITCH_CHANNEL=the_ivo_robotnic
+
+volumes:
+  data_dir:

@@ -2,6 +2,8 @@
 **/dist/*
 **/*.whl
 **/ignore-users.json
+**/auth.json
+**/docker/*.txt
 
 # Temporary and binary files
 *~

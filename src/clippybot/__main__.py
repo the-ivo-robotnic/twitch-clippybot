@@ -8,10 +8,10 @@ from logging import ERROR, INFO, NOTSET, basicConfig, getLogger
 from threading import Event, Lock
 from typing import Callable, List
 from urllib.parse import urlparse, ParseResult
-
+from os.path import exists
 
 from decorator import decorator
-from spellchecker import SpellChecker
+
 from twitchAPI.chat import Chat, ChatCommand, ChatMessage, ChatUser, JoinedEvent
 from twitchAPI.oauth import UserAuthenticator
 from twitchAPI.twitch import Twitch
@@ -27,6 +27,7 @@ from twitchAPI.object.eventsub import (
 
 from . import __metadata__, __twitch_app_id__, __twitch_app_secret__
 
+AUTH_PATH = "./auth.json"
 LOG = getLogger(__name__)
 API_SCOPES = [
     AuthScope.CHAT_READ,
@@ -34,7 +35,7 @@ API_SCOPES = [
     AuthScope.USER_BOT,
     AuthScope.CHANNEL_MANAGE_REDEMPTIONS,
 ]
-SPELLCHECKER = SpellChecker()
+# SPELLCHECKER = SpellChecker()
 IGNORE_USERS = []
 IGNORE_USERS_LCK = Lock()
 BOT_ENABLE = Event()
@@ -112,7 +113,7 @@ def parse_args() -> Namespace:
         dest="twitch_channel",
         metavar="Twitch Channel",
         type=str,
-        default="the_ivo_robotnic",
+        required=True,
         help="Twitch Channel to connect to.",
     )
     parser.add_argument(
@@ -262,29 +263,29 @@ async def on_message(message: ChatMessage) -> None:
     :type message: ChatMessage
     """
     message_words = message.text.split(" ")
-    misspelled = SPELLCHECKER.unknown(message_words)
-    misspelled_cnt = len(misspelled)
-    LOG.info(
-        "Found %s potential errors in message from %s: %s",
-        misspelled_cnt,
-        message.user.display_name,
-        message.text,
-    )
+    # misspelled = SPELLCHECKER.unknown(message_words)
+    # misspelled_cnt = len(misspelled)
+    # LOG.info(
+    #     "Found %s potential errors in message from %s: %s",
+    #     misspelled_cnt,
+    #     message.user.display_name,
+    #     message.text,
+    # )
 
-    if misspelled_cnt > 0:
-        corrections = []
-        for word in misspelled:
-            correction = SPELLCHECKER.correction(word)
-            if(correction is None):
-                continue
-            corrections.append(f'{word} (did you mean "{correction}"?)')
-        corrections = ", ".join(corrections)
-        if len(corrections) == 0:
-            return
-        await message.reply(
-            f"📎 Uh-oh, looks like you misspelled {corrections}"
-            " Would you like help with that? 📎"
-        )
+    # if misspelled_cnt > 0:
+    #     corrections = []
+    #     for word in misspelled:
+    #         correction = SPELLCHECKER.correction(word)
+    #         if correction is None:
+    #             continue
+    #         corrections.append(f'{word} (did you mean "{correction}"?)')
+    #     corrections = ", ".join(corrections)
+    #     if len(corrections) == 0:
+    #         return
+    #     await message.reply(
+    #         f"📎 Uh-oh, looks like you misspelled {corrections}"
+    #         " Would you like help with that? 📎"
+    #     )
 
 
 @bot_enabled
@@ -372,7 +373,9 @@ async def on_listen(cmd: ChatCommand) -> None:
     IGNORE_USERS_LCK.acquire()
     IGNORE_USERS.remove(cmd.user.id)
     IGNORE_USERS_LCK.release()
-    await cmd.reply("📎 Ok! I'll be sure to suggest corrections for you again! :) 📎")
+    await cmd.reply(
+        "📎 Ok! I'll be sure to suggest corrections for you again! :) 📎"
+    )
 
 
 async def amain():
@@ -391,15 +394,34 @@ async def amain():
     # Setup Twitch Auth Flow
     twitch = await Twitch(__twitch_app_id__, __twitch_app_secret__)
     auth = UserAuthenticator(twitch=twitch, scopes=API_SCOPES, force_verify=False)
+    auth_args = None
 
-    auth_url = auth.return_auth_url()
-    print(
-        f"Open this link in a browser to continue Twitch OAuth Flow:\n\t{auth_url}",
-    )
-    res_url = input("Paste the resulting link from your browser> ")
-    res: ParseResult = urlparse(res_url)
-    auth_args = res.query.split("&")
-    auth_args = dict(map(lambda x: x.split("="), auth_args))
+    if exists(AUTH_PATH):
+        with open(AUTH_PATH, "r", encoding="utf-8") as file:
+            res = load(file)
+            url_bits: ParseResult = urlparse(res["app-url"])
+            auth_args = url_bits.query.split("&")
+            auth_args = dict(map(lambda x: x.split("="), auth_args))
+    else:
+        auth_url = auth.return_auth_url()
+        print(
+            f"Open this link in a browser to continue Twitch OAuth Flow:\n\t{auth_url}\nThen Edit auth.json with the details and re-launch the bot.",
+        )
+
+        with open("auth.json", "w+", encoding="utf-8") as file:
+            dump(
+                {
+                    "twitch-url": auth_url,
+                    "app-url": "",
+                },
+                file,
+                indent=4,
+                ensure_ascii=True,
+                allow_nan=False,
+                check_circular=True,
+                sort_keys=True,
+            )
+        return
 
     access, refresh = await auth.authenticate(user_token=auth_args["code"])
     await twitch.set_user_authentication(

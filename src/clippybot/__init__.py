@@ -3,7 +3,6 @@
 import os
 import sys
 from importlib.metadata import metadata
-from importlib.metadata._meta import PackageMetadata
 
 
 def assert_env_param(
@@ -16,6 +15,6 @@ def assert_env_param(
     return value
 
 
-__metadata__: PackageMetadata = metadata(__name__)
+__metadata__ = metadata(__name__)
 __twitch_app_id__ = "qpdklwf93powtxpbf1skauebzvfpbu"
 __twitch_app_secret__ = assert_env_param("CLIPPYBOT_SECRET")
